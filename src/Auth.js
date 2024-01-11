@@ -58,7 +58,7 @@ app.post('/login', (req, res) => {
 
     if (user) {
         // Generate a JWT token
-        tokenUser = jwt.sign({ email, password }, secretKey, { expiresIn: '1h' });
+        tokenUser = jwt.sign( email, secretKey, { expiresIn: '24h' });
     
         // Return the token to the client
         res.json({ tokenUser });
@@ -70,6 +70,8 @@ app.post('/login', (req, res) => {
 
 // Регистрация, если пользователя с таким именем нету
 app.post('/register', (req, res) => {
+
+    //и это не працуе, куда надо пихать этот ебучий валидатор
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
         res.status(400).json({message: "Ошибка при регистрации"})
@@ -103,7 +105,6 @@ app.post('/register', (req, res) => {
   }
 });
 
-// Start the server
 app.listen(3000, () => {
   console.log('Server started on port 3000');
 });
