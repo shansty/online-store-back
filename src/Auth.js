@@ -2,52 +2,36 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
-//const {check} =  require('express-validator');
-//const {validationResult} = require('express-validator');
-
 const app = express();
 app.use(express.json());
 app.use(cors({origin: ["http://localhost:3000"]}));
 
 const secretKey = 'secret-key-for-user';
 
-
-const usersLogin = [
-    {
-      id: 1,
-      email: 'test@email.ru',
-      password: '123'
-    },
-    {
-      id: 2,
-      email: 'sectest@ggmail.com',
-      password: 'nastya'
-    },
-    {
-      id: 3,
-      email: 'thirdtest@gmail.com',
-      password: 'artsiom'
-    }
-    ]
-
 const usersRegister = [
     {
       id: 1,
       email: 'test@email.ru',
       password: '123',
-      fullName: 'Anastasiya'
+      userName: 'Anastasiya',
+      phoneNumber: "",
+      shopOwner: false
     },
     {
       id: 2,
       email: 'sectest@ggmail.com',
       password: 'nastya',
-      fullName: 'Artsiom'
+      userName: 'Artsiom',
+      phoneNumber: "",
+      shopOwner: false
     },
     {
       id: 3,
       email: 'thirdtest@gmail.com',
       password: 'artsiom',
-      fullName: 'John'
+      userName: 'John',
+      phoneNumber: "",
+      shopOwner: false
     }
     ]
 
@@ -56,7 +40,7 @@ app.post('/login', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
 
-    let user = usersLogin.find(el => {
+    let user = usersRegister.find(el => {
         return el.email === email && el.password == password;
       })
 
@@ -75,21 +59,9 @@ app.post('/login', (req, res) => {
 // Регистрация, если пользователя с таким именем нету
 app.post('/register', (req, res) => {
 
-
-    //и это не працуе, куда надо пихать этот ебучий валидатор
-    // const errors = validationResult(req);
-    // if(!errors.isEmpty()) {
-    //     res.status(400).json({message: "Ошибка при регистрации"})
-    // }
-
-    // //Cпросить, почему не працуе
-    // check("email", "Поле email не может быть пустым").notEmpty();
-    // check("fullName", "Поле fullName не может быть пустым").notEmpty();
-    // check("password", "Пароль должен быть больше 4 символом и меньше 10").isLength({min:4, max:10});
-
     const email = req.body.email;
     const password = req.body.password;
-    const fullName = req.body.fullName;
+    const userName = req.body.userName;
 
     const quantityOfUsers = usersRegister.length;
 
@@ -108,13 +80,61 @@ app.post('/register', (req, res) => {
         id: id,
         email: email,
         password: password,
-        fullName: fullName
+        userName: userName
     }
     usersRegister.push(newUser);
     console.log(usersRegister)
-    res.json({message: `${fullName}, Вы успешно зарегистрировались!`})
+    res.json({message: `${userName}, Вы успешно зарегистрировались!`})
   }
 });
+
+
+app.patch('/profile/:id', (req, res) => {
+
+    const email = req.body.email;
+    const userName = req.body.userName;
+    const phoneNumber = req.body.phoneNumber;
+    const shopOwner = req.body.shopOwner;
+    const id =  req.params.id;
+
+    let user = usersRegister.find(el => {
+      return el.id === id;
+    })
+
+    let updateUser = {
+      email : "",
+      password: user.password,
+      userName: "",
+      phoneNumber: "",
+      shopOwner: false,
+      id: id
+    };
+
+    if (email === "") {
+      updateUser.email = user.email;
+    } else {
+      updateUser.email = email;
+    }
+    if (userName === "") {
+      updateUser.userName = user.userName;
+    } else {
+      updateUser.userName = userName;
+    }
+    if (phoneNumber === "") {
+      updateUser.phoneNumber = user.phoneNumber;
+    } else {
+      updateUser.phoneNumber = phoneNumber;
+    }
+    if (shopOwner === false) {
+      updateUser.shopOwner = user.shopOwner;
+    } else {
+      updateUser.shopOwner = shopOwner;
+    }
+
+    user = newUser;
+    res.json({message: `Данные пользователя обновлены`})
+
+}); 
 
 app.listen(3001, () => {
   console.log('Server started on port 3001');
