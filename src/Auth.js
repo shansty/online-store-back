@@ -35,6 +35,28 @@ const usersRegister = [
     }
     ]
 
+//get/:id' запрос с токеном, котдающий юзера
+app.get('/profile/:id', (req, res) => {
+    const token = req.body.token;
+    try {
+      jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+          return res.status(403).json({ message: `Invalid data + ${token}`});
+        }
+      let id = decoded.id;
+      let user = usersRegister.find(el => {
+        return el.id = id;
+      })
+      res.json({user})
+    });
+    } catch (err) {
+      console.error(err); 
+    }
+}); 
+
+
+
+
 app.post('/login', (req, res) => {
 
     const email = req.body.email;
@@ -44,12 +66,14 @@ app.post('/login', (req, res) => {
         return el.email === email && el.password == password;
       })
 
+      let id = user.id;
+
     if (user) {
         // Generate a JWT token
-        tokenUser = jwt.sign( {email}, secretKey, { expiresIn: '24h' });
+        token = jwt.sign( {id}, secretKey, { expiresIn: '24h' });
     
         // Return the token to the client
-        res.json({ tokenUser });
+        res.json({ token: token });
     
       } else {
         res.status(401).json({ message: 'Invalid username or password' });
@@ -91,47 +115,16 @@ app.post('/register', (req, res) => {
 
 app.patch('/profile/:id', (req, res) => {
 
-    const email = req.body.email;
-    const userName = req.body.userName;
-    const phoneNumber = req.body.phoneNumber;
-    const shopOwner = req.body.shopOwner;
+    const params = req.body;
     const id =  req.params.id;
 
     let user = usersRegister.find(el => {
       return el.id === id;
     })
 
-    let updateUser = {
-      email : "",
-      password: user.password,
-      userName: "",
-      phoneNumber: "",
-      shopOwner: false,
-      id: id
-    };
+    let ind = user.findIndex()
 
-    if (email === "") {
-      updateUser.email = user.email;
-    } else {
-      updateUser.email = email;
-    }
-    if (userName === "") {
-      updateUser.userName = user.userName;
-    } else {
-      updateUser.userName = userName;
-    }
-    if (phoneNumber === "") {
-      updateUser.phoneNumber = user.phoneNumber;
-    } else {
-      updateUser.phoneNumber = phoneNumber;
-    }
-    if (shopOwner === false) {
-      updateUser.shopOwner = user.shopOwner;
-    } else {
-      updateUser.shopOwner = shopOwner;
-    }
-
-    user = newUser;
+    usersRegister[ind] = {...usersRegister[ind], ...params}
     res.json({message: `Данные пользователя обновлены`})
 
 }); 
