@@ -8,7 +8,7 @@ app.use(cors({origin: ["http://localhost:3000"]}));
 
 const secretKey = 'secret-key-for-user';
 
-const usersRegister = [
+const users = [
     {
       id: 1,
       email: 'test@email.ru',
@@ -35,34 +35,12 @@ const usersRegister = [
     }
     ]
 
-//get/:id' запрос с токеном, котдающий юзера
-app.get('/profile/:id', (req, res) => {
-    const token = req.body.token;
-    try {
-      jwt.verify(token, secretKey, (err, decoded) => {
-        if (err) {
-          return res.status(403).json({ message: `Invalid data + ${token}`});
-        }
-      let id = decoded.id;
-      let user = usersRegister.find(el => {
-        return el.id = id;
-      })
-      res.json({user})
-    });
-    } catch (err) {
-      console.error(err); 
-    }
-}); 
-
-
-
-
 app.post('/login', (req, res) => {
 
     const email = req.body.email;
     const password = req.body.password;
 
-    let user = usersRegister.find(el => {
+    let user = users.find(el => {
         return el.email === email && el.password == password;
       })
 
@@ -73,7 +51,7 @@ app.post('/login', (req, res) => {
         token = jwt.sign( {id}, secretKey, { expiresIn: '24h' });
     
         // Return the token to the client
-        res.json({ token: token });
+        res.json({ token });
     
       } else {
         res.status(401).json({ message: 'Invalid username or password' });
@@ -87,9 +65,9 @@ app.post('/register', (req, res) => {
     const password = req.body.password;
     const userName = req.body.userName;
 
-    const quantityOfUsers = usersRegister.length;
+    const quantityOfUsers = users.length;
 
-    let user = usersRegister.find(el => {
+    let user = users.find(el => {
       return el.email === email;
     })
 
@@ -106,27 +84,56 @@ app.post('/register', (req, res) => {
         password: password,
         userName: userName
     }
-    usersRegister.push(newUser);
-    console.log(usersRegister)
+    users.push(newUser);
+    console.log(users)
     res.json({message: `${userName}, Вы успешно зарегистрировались!`})
   }
 });
 
 
+app.get('/profile/:id', (req, res) => {
+  const authHeader = req.headers['Authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  const id = req.params.id;
+  try {
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: `Invalid data + ${token}`});
+      }
+      if (id === decoded.id){
+      res.json({user})
+      }
+    });
+  } catch (err) {
+    console.error(err); 
+  }
+}); 
+
+
 app.patch('/profile/:id', (req, res) => {
 
+    const authHeader = req.headers['Authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     const params = req.body;
     const id =  req.params.id;
 
-    let user = usersRegister.find(el => {
-      return el.id === id;
-    })
+    try {
+      jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+          return res.status(403).json({ message: `Invalid data + ${token}`});
+        }
+        if (id === decoded.id){
+          let ind = users.findIndex(el => {
+            return el.id === id;
+          })
+          users[ind] = {...users[ind], ...params}
+          res.json({message: `Данные пользователя обновлены`})
 
-    let ind = user.findIndex()
-
-    usersRegister[ind] = {...usersRegister[ind], ...params}
-    res.json({message: `Данные пользователя обновлены`})
-
+        }
+      });
+    } catch (err) {
+      console.error(err); 
+    }
 }); 
 
 app.listen(3001, () => {
