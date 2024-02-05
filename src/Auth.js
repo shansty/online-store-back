@@ -100,8 +100,11 @@ app.get('/profile/:id', (req, res) => {
       if (err) {
         return res.status(403).json({ message: `Invalid data + ${token}`});
       }
-      if (id === decoded.id){
-      res.json({user})
+      if (id === decoded.id) {
+        let user = users.find(el => {
+          return el.id === id;
+        })
+        res.json({user})
       }
     });
   } catch (err) {
@@ -122,13 +125,12 @@ app.patch('/profile/:id', (req, res) => {
         if (err) {
           return res.status(403).json({ message: `Invalid data + ${token}`});
         }
-        if (id === decoded.id){
+        if (id === decoded.id) {
           let ind = users.findIndex(el => {
             return el.id === id;
           })
           users[ind] = {...users[ind], ...params}
           res.json({message: `Данные пользователя обновлены`})
-
         }
       });
     } catch (err) {
