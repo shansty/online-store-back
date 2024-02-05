@@ -92,45 +92,50 @@ app.post('/register', (req, res) => {
 
 
 app.get('/profile/:id', (req, res) => {
-  const authHeader = req.headers['Authorization'];
+  const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   const id = req.params.id;
   try {
     jwt.verify(token, secretKey, (err, decoded) => {
       if (err) {
         return res.status(403).json({ message: `Invalid data + ${token}`});
-      }
-      if (id === decoded.id) {
+      } else {
+      if (id == decoded.id) {
         let user = users.find(el => {
-          return el.id === id;
+          return el.id == id;
         })
         res.json({user})
-      }
+      }}
     });
   } catch (err) {
+    res.json("Error")
     console.error(err); 
   }
 }); 
 
 
 app.patch('/profile/:id', (req, res) => {
-
-    const authHeader = req.headers['Authorization'];
+    const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     const params = req.body;
     const id =  req.params.id;
+
+    console.log(params)
+    console.log(id)
 
     try {
       jwt.verify(token, secretKey, (err, decoded) => {
         if (err) {
           return res.status(403).json({ message: `Invalid data + ${token}`});
         }
-        if (id === decoded.id) {
+        if (id == decoded.id) {
           let ind = users.findIndex(el => {
-            return el.id === id;
+            return el.id == id;
           })
+          console.log(params)
           users[ind] = {...users[ind], ...params}
-          res.json({message: `Данные пользователя обновлены`})
+          // res.json({message: `Данные пользователя обновлены`})
+          res.json(users[ind])
         }
       });
     } catch (err) {
