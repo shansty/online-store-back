@@ -98,18 +98,20 @@ app.get('/profile/:id', (req, res) => {
   try {
     jwt.verify(token, secretKey, (err, decoded) => {
       if (err) {
-        return res.status(403).json({ message: `Invalid data + ${token}`});
+        return res.status(403).json({ message: err.message});
       } else {
-      if (id == decoded.id) {
-        let user = users.find(el => {
-          return el.id == id;
-        })
-        res.json({user})
-      }}
+        if (id == decoded.id) {
+          let user = users.find(el => {
+            return el.id == id;
+          })
+          res.json({user})
+        } else {
+          res.status(403).json({message: "Unauthorized"})
+        }}
     });
   } catch (err) {
-    res.json("Error")
-    console.error(err); 
+    console.log(err)
+    res.status(400).json({message: err.message})
   }
 }); 
 
@@ -126,7 +128,7 @@ app.patch('/profile/:id', (req, res) => {
     try {
       jwt.verify(token, secretKey, (err, decoded) => {
         if (err) {
-          return res.status(403).json({ message: `Invalid data + ${token}`});
+          return res.status(403).json({ message: `Invalid data`});
         }
         if (id == decoded.id) {
           let ind = users.findIndex(el => {
@@ -134,12 +136,14 @@ app.patch('/profile/:id', (req, res) => {
           })
           console.log(params)
           users[ind] = {...users[ind], ...params}
-          // res.json({message: `Данные пользователя обновлены`})
           res.json(users[ind])
+        } else {
+          res.status(403).json({message: "Unauthorized"})
         }
       });
     } catch (err) {
-      console.error(err); 
+      console.log(err)
+      res.status(400).json({message: err.message})
     }
 }); 
 
