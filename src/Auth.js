@@ -98,7 +98,8 @@ app.get('/profile/:id', (req, res) => {
   try {
     jwt.verify(token, secretKey, (err, decoded) => {
       if (err) {
-        return res.status(403).json({ message: err.message});
+        res.status(403).json({ message: err.message});
+        return;
       } else {
         if (id == decoded.id) {
           let user = users.find(el => {
