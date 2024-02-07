@@ -2,52 +2,36 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
-//const {check} =  require('express-validator');
-//const {validationResult} = require('express-validator');
-
 const app = express();
 app.use(express.json());
 app.use(cors({origin: ["http://localhost:3000"]}));
 
 const secretKey = 'secret-key-for-user';
 
-
-const usersLogin = [
-    {
-      id: 1,
-      email: 'test@email.ru',
-      password: '123'
-    },
-    {
-      id: 2,
-      email: 'sectest@ggmail.com',
-      password: 'nastya'
-    },
-    {
-      id: 3,
-      email: 'thirdtest@gmail.com',
-      password: 'artsiom'
-    }
-    ]
-
-const usersRegister = [
+const users = [
     {
       id: 1,
       email: 'test@email.ru',
       password: '123',
-      fullName: 'Anastasiya'
+      userName: 'Anastasiya',
+      phoneNumber: "",
+      shopOwner: false
     },
     {
       id: 2,
       email: 'sectest@ggmail.com',
       password: 'nastya',
-      fullName: 'Artsiom'
+      userName: 'Artsiom',
+      phoneNumber: "",
+      shopOwner: false
     },
     {
       id: 3,
       email: 'thirdtest@gmail.com',
       password: 'artsiom',
-      fullName: 'John'
+      userName: 'John',
+      phoneNumber: "",
+      shopOwner: false
     }
     ]
 
@@ -56,16 +40,18 @@ app.post('/login', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
 
-    let user = usersLogin.find(el => {
+    let user = users.find(el => {
         return el.email === email && el.password == password;
       })
 
+      let id = user.id;
+
     if (user) {
         // Generate a JWT token
-        tokenUser = jwt.sign( {email}, secretKey, { expiresIn: '24h' });
+        token = jwt.sign( {id}, secretKey, { expiresIn: '24h' });
     
         // Return the token to the client
-        res.json({ tokenUser });
+        res.json({ token });
     
       } else {
         res.status(401).json({ message: 'Invalid username or password' });
@@ -75,25 +61,13 @@ app.post('/login', (req, res) => {
 // Регистрация, если пользователя с таким именем нету
 app.post('/register', (req, res) => {
 
-
-    //и это не працуе, куда надо пихать этот ебучий валидатор
-    // const errors = validationResult(req);
-    // if(!errors.isEmpty()) {
-    //     res.status(400).json({message: "Ошибка при регистрации"})
-    // }
-
-    // //Cпросить, почему не працуе
-    // check("email", "Поле email не может быть пустым").notEmpty();
-    // check("fullName", "Поле fullName не может быть пустым").notEmpty();
-    // check("password", "Пароль должен быть больше 4 символом и меньше 10").isLength({min:4, max:10});
-
     const email = req.body.email;
     const password = req.body.password;
-    const fullName = req.body.fullName;
+    const userName = req.body.userName;
 
-    const quantityOfUsers = usersRegister.length;
+    const quantityOfUsers = users.length;
 
-    let user = usersRegister.find(el => {
+    let user = users.find(el => {
       return el.email === email;
     })
 
@@ -108,13 +82,72 @@ app.post('/register', (req, res) => {
         id: id,
         email: email,
         password: password,
-        fullName: fullName
+        userName: userName
     }
-    usersRegister.push(newUser);
-    console.log(usersRegister)
-    res.json({message: `${fullName}, Вы успешно зарегистрировались!`})
+    users.push(newUser);
+    console.log(users)
+    res.json({message: `${userName}, Вы успешно зарегистрировались!`})
   }
 });
+
+
+app.get('/profile/:id', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  const id = req.params.id;
+  try {
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+        res.status(403).json({ message: err.message});
+        return;
+      } else {
+        if (id == decoded.id) {
+          let user = users.find(el => {
+            return el.id == id;
+          })
+          res.json({user})
+        } else {
+          res.status(403).json({message: "Unauthorized"})
+        }}
+    });
+  } catch (err) {
+    console.log(err)
+    res.status(400).json({message: err.message})
+  }
+}); 
+
+
+app.patch('/profile/:id', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    const params = req.body;
+    const id =  req.params.id;
+
+    console.log(params)
+    console.log(id)
+
+    try {
+      jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+          res.status(403).json({ message: `Invalid data`});
+          return;
+        }
+        if (id == decoded.id) {
+          let ind = users.findIndex(el => {
+            return el.id == id;
+          })
+          console.log(params)
+          users[ind] = {...users[ind], ...params}
+          res.json(users[ind])
+        } else {
+          res.status(403).json({message: "Unauthorized"})
+        }
+      });
+    } catch (err) {
+      console.log(err)
+      res.status(400).json({message: err.message})
+    }
+}); 
 
 app.listen(3001, () => {
   console.log('Server started on port 3001');
