@@ -128,7 +128,8 @@ app.patch('/profile/:id', (req, res) => {
     try {
       jwt.verify(token, secretKey, (err, decoded) => {
         if (err) {
-          return res.status(403).json({ message: `Invalid data`});
+          res.status(403).json({ message: `Invalid data`});
+          return;
         }
         if (id == decoded.id) {
           let ind = users.findIndex(el => {
