@@ -40,7 +40,6 @@ const products = [
     title: 'Чашка',
     description: 'Большая голубая',
     img: 'https://thumbs.dreamstime.com/z/%D0%B3%D0%BE%D0%BB%D1%83%D0%B1%D0%B0%D1%8F-%D1%87%D0%B0%D1%88%D0%BA%D0%B0-8913906.jpg',
-    isInStock: true,
     user_id: 1,
     vendorCode: 44
   },
@@ -49,7 +48,6 @@ const products = [
     title: 'Тарелка',
     description: 'Красивая круглая',
     img: 'https://akshome.by/upload/iblock/cde/k0i2q2v9cxrswrs0zjvyhpwpy5tswj5q.jpg',
-    isInStock: true,
     user_id: 2,
     vendorCode: 45
   },
@@ -58,7 +56,6 @@ const products = [
     title: 'Ложка',
     description: 'Удобная серебрянная',
     img: 'https://images.deal.by/317619960_w600_h600_317619960.jpg',
-    isInStock: true,
     user_id: 1,
     vendorCode: 13
   }
@@ -76,18 +73,14 @@ app.post('/login', (req, res) => {
       let id = user.id;
 
     if (user) {
-        // Generate a JWT token
         token = jwt.sign( {id}, secretKey, { expiresIn: '24h' });
-    
-        // Return the token to the client
-        res.json({ token });
+        res.status(200).json({ token });
     
       } else {
         res.status(401).json({ message: 'Invalid username or password' });
       }
 })
 
-// Регистрация, если пользователя с таким именем нету
 app.post('/register', (req, res) => {
 
     const email = req.body.email;
@@ -102,10 +95,10 @@ app.post('/register', (req, res) => {
 
   if (user) {
     res.status(409)
-    res.json({message: 'Пользователь с таким именем или email уже зарегистрирован'});
+    res.json({message: 'User with this email or name already exist'});
 
   } else {
-    // https://www.npmjs.com/package/uuid
+    
     const id = quantityOfUsers + 1;
     const newUser = {
         id: id,
@@ -115,7 +108,7 @@ app.post('/register', (req, res) => {
     }
     users.push(newUser);
     console.log(users)
-    res.json({message: `${userName}, Вы успешно зарегистрировались!`})
+    res.json({message: `${userName}, You are authorized!`})
   }
 });
 
@@ -149,7 +142,7 @@ app.get('/profile/:id', (req, res) => {
 app.patch('/profile/:id', (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    const params = req.body;
+    const data = req.body;
     const id =  req.params.id;
 
     try {
@@ -160,13 +153,13 @@ app.patch('/profile/:id', (req, res) => {
         }
         if (id == decoded.id) {
           let ind = users.findIndex(el => {
-            el.id == id;
+            return el.id == id;
           })
-          console.log(params)
-          users[ind] = {...users[ind], ...params}
+          console.log(data)
+          users[ind] = {...users[ind], ...data}
           res.json(users[ind])
         } else {
-          res.status(403).json({message: "Unauthorized"})
+          res.status(403).json({message: "Forbidden"})
         }
       });
     } catch (err) {
@@ -175,99 +168,147 @@ app.patch('/profile/:id', (req, res) => {
     }
 }); 
 
-app.get("/users/:id/products", (req, res) => {
+app.get("/users/:userId/products", (req, res) => {
   console.log(req.params)
-  let id = req.params.id;
-  let product = products.filter(el => {
-    return el.user_id == id
+  let userId = req.params.userId;
+  let userProducts = products.filter(el => {
+    return el.user_id == userId
   })
-  if(product) {
-    res.json(product)
-  } else {
-    res.json({message: "В магазине нету продуктов"})
-  }
-
+    res.status(200).json(userProducts)
 })
 
-app.get("/users/:id/products/:id", (req, res) => {
+app.get("/users/:userId/products/:id", (req, res) => {
   const id =  req.params.id;
-  console.log(id)
+  const userId =  req.params.userId;
+  let user = users.findIndex(el => {
+    return el.id == userId;
+  })
+  if(user == -1) {
+    res.status(404).json({message: "User dosen't exist"})
+  }
   let userProducts = products.find(el => {
     return el.id == id;
   })
   if(userProducts) {
     res.json(userProducts)
   } else {
-    res.json({message: "Такой товар не существует"})
+    res.status(404).json({message: "Product doesn't exist"})
   }
 })
 
-app.post("/users/:id/products", (req, res) => {
-  const title = req.body.title;
-  const description = req.body.description;
-  const img = req.body.img;
-  const isInStock = req.body.isInStock;
-  const vendorCode = req.body.vendorCode;
-  const user_id = req.params.id;
-
+app.post("/users/:userId/products", (req, res) => {
+  const { title, description, img, vendorCode }  = req.body;
+  const user_id = req.params.userId;
   const quantityOfProducts = products.length;
+  try {
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+        res.status(403).json({ message: err.message});
+        return;
+      } else {
+        if (user_id == decoded.id) {
+          let product = products.find(el => {
+            return el.vendorCode == vendorCode
+          })
+          if (product) {
+            res.status(409)
+            res.json({message: 'Product with this vendor code already exist'});
+          } else {
+            const id = quantityOfProducts + 1;
+            const newProduct = {
+                id,
+                title,
+                description,
+                img,
+                vendorCode,
+                user_id
+            }
+            products.push(newProduct);
+            console.log(products)
+            res.status(201).json({message: `${title} with vendor code ${vendorCode} added to the product's list`})
+          }
+        } else {
+          res.status(403).json({message: "Unauthorized"})
+        }}
+    });
+  } catch (err) {
+    console.log(err)
+    res.status(400).json({message: err.message})
+  }});
 
-  let product = products.find(el => {
-    return el.vendorCode == vendorCode
-  })
 
-  if (product) {
-    res.status(409)
-    res.json({message: 'Товар с таким артикулом уже существует'});
-
-  } else {
-    const id = quantityOfProducts + 1;
-    const newProduct = {
-        id: id,
-        title: title,
-        description: description,
-        img: img,
-        isInStock: isInStock,
-        vendorCode: vendorCode,
-        user_id: user_id
-    }
-    products.push(newProduct);
-    console.log(products)
-    res.json({message: `${title} с артикулом ${vendorCode} добавлен в список ваших товаров`})
-  }
-  });
-
-app.delete("/users/:id/products/:id", (req, res) => {
+app.delete("/users/:userId/products/:id", (req, res) => {
   const id =  req.params.id;
-  console.log(id)
-  let userProducts = products.find(el => {
-    return el.id == id;
+  const userId = req.params.userId;
+  let user = users.findIndex(el => {
+    return el.id == userId;
   })
-  if(userProducts) {
-    let arrayWithoutProduct = products.filter(el => el.id != id);
-    res.json(arrayWithoutProduct)
-  } else {
-    res.json({message: "Такой товар не существует"})
+  if(user == -1) {
+    res.status(404).json({message: "User dosen't exist"})
   }
-});
+  try {
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+        res.status(403).json({ message: err.message});
+        return;
+      } else {
+        if (userId == decoded.id) {
+          let userProducts = products.find(el => {
+            return el.id == id;
+          })
+          if(userProducts) {
+            let arrayWithoutProduct = products.filter(el => el.id != id);
+            res.json({ products: arrayWithoutProduct })
+          } else {
+            res.status(404).json({message: "Product doesn't exist"})
+          }
+        } else {
+          res.status(403).json({message: "Unauthorized"})
+        }}
+    });
+  } catch (err) {
+    console.log(err)
+    res.status(400).json({message: err.message})
+  }});  
 
-app.patch("/users/:id/products/:id", (req, res) => {
 
-    const params = req.body;
+app.patch("/users/:userId/products/:id", (req, res) => {
+
+    const data = req.body;
     const id =  req.params.id;
-    let ind = products.findIndex(el => {
-      return el.id == id;
+    const userId = req.params.userId;
+    let user = users.findIndex(el => {
+      return el.id == userId;
     })
-    if(ind >= 0) {
-      console.log(params)
-      products[ind] = {...products[ind], ...params}
-      res.json(products[ind])
-      console.log(products)
-    } else {
-      res.status(403).json({message: "Товар не существует"})
+    if(user == -1) {
+      res.status(404).json({message: "User dosen't exist"})
     }
-    
-  });
+    try {
+      jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+          res.status(403).json({ message: err.message});
+          return;
+        } else {
+          if (userId == decoded.id) {
+            let ind = products.findIndex(el => {
+              return el.id == id;
+            })
+            if(ind != -1) {
+              console.log(data)
+              products[ind] = {...products[ind], ...data}
+              res.json({products: products[ind]})
+              console.log(products)
+            } else {
+              res.status(404).json({message: "Product doesn't exist"})
+            }
+          } else {
+            res.status(403).json({message: "Unauthorized"})
+          }}
+      });
+    } catch (err) {
+      console.log(err)
+      res.status(400).json({message: err.message})
+    }});  
 
 
 app.listen(3001, () => {
