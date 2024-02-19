@@ -98,7 +98,7 @@ app.post('/register', (req, res) => {
     res.json({message: 'User with this email or name already exist'});
 
   } else {
-    
+
     const id = quantityOfUsers + 1;
     const newUser = {
         id: id,
@@ -197,6 +197,8 @@ app.get("/users/:userId/products/:id", (req, res) => {
 })
 
 app.post("/users/:userId/products", (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
   const { title, description, img, vendorCode }  = req.body;
   const user_id = req.params.userId;
   const quantityOfProducts = products.length;
@@ -238,6 +240,8 @@ app.post("/users/:userId/products", (req, res) => {
 
 
 app.delete("/users/:userId/products/:id", (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
   const id =  req.params.id;
   const userId = req.params.userId;
   let user = users.findIndex(el => {
@@ -273,7 +277,8 @@ app.delete("/users/:userId/products/:id", (req, res) => {
 
 
 app.patch("/users/:userId/products/:id", (req, res) => {
-
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     const data = req.body;
     const id =  req.params.id;
     const userId = req.params.userId;
