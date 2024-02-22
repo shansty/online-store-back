@@ -34,7 +34,7 @@ const users = [
       shopOwner: false
     }
     ]
-const products = [
+let products = [
   {
     id: 1,
     title: 'Чашка',
@@ -157,7 +157,7 @@ app.patch('/profile/:id', (req, res) => {
           })
           console.log(data)
           users[ind] = {...users[ind], ...data}
-          res.json(users[ind])
+          res.status(201).json(users[ind])
         } else {
           res.status(403).json({message: "Forbidden"})
         }
@@ -174,7 +174,7 @@ app.get("/users/:userId/products", (req, res) => {
   let userProducts = products.filter(el => {
     return el.user_id == userId
   })
-    res.status(200).json(userProducts)
+    res.status(200).json({userProducts})
 })
 
 app.get("/users/:userId/products/:id", (req, res) => {
@@ -186,20 +186,25 @@ app.get("/users/:userId/products/:id", (req, res) => {
   if(user == -1) {
     res.status(404).json({message: "User dosen't exist"})
   }
-  let userProducts = products.find(el => {
+  let userProduct = products.find(el => {
     return el.id == id;
   })
-  if(userProducts) {
-    res.json(userProducts)
+  if(userProduct) {
+    res.status(200).json({userProduct})
   } else {
     res.status(404).json({message: "Product doesn't exist"})
   }
 })
 
 app.post("/users/:userId/products", (req, res) => {
+  console.log("ac aqlqc")
+
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   const { title, description, img, vendorCode }  = req.body;
+
+  console.log({body: req.body})
+
   const user_id = req.params.userId;
   const quantityOfProducts = products.length;
   try {
@@ -242,8 +247,7 @@ app.post("/users/:userId/products", (req, res) => {
 app.delete("/users/:userId/products/:id", (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  const id =  req.params.id;
-  const userId = req.params.userId;
+  const { id, userId } =  req.params;
   let user = users.findIndex(el => {
     return el.id == userId;
   })
@@ -257,12 +261,10 @@ app.delete("/users/:userId/products/:id", (req, res) => {
         return;
       } else {
         if (userId == decoded.id) {
-          let userProducts = products.find(el => {
-            return el.id == id;
-          })
-          if(userProducts) {
-            let arrayWithoutProduct = products.filter(el => el.id != id);
-            res.json({ products: arrayWithoutProduct })
+          let productIndex = products.findIndex(el => el.id == id && el.user_id == userId)
+          if(productIndex != -1) {
+            products.splice(productIndex, 1)
+            res.json({ products: products.filter(el => el.user_id == userId) })
           } else {
             res.status(404).json({message: "Product doesn't exist"})
           }
