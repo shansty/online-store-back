@@ -108,7 +108,7 @@ app.post('/register', (req, res) => {
     }
     users.push(newUser);
     console.log(users)
-    res.json({message: `${userName}, You are authorized!`})
+    res.json({message: `${userName}, You are registered!`})
   }
 });
 
@@ -197,13 +197,9 @@ app.get("/users/:userId/products/:id", (req, res) => {
 })
 
 app.post("/users/:userId/products", (req, res) => {
-  console.log("ac aqlqc")
-
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   const { title, description, img, vendorCode }  = req.body;
-
-  console.log({body: req.body})
 
   const user_id = req.params.userId;
   const quantityOfProducts = products.length;
@@ -215,7 +211,7 @@ app.post("/users/:userId/products", (req, res) => {
       } else {
         if (user_id == decoded.id) {
           let product = products.find(el => {
-            return el.vendorCode == vendorCode
+            return el.vendorCode == vendorCode && el.user_id == user_id 
           })
           if (product) {
             res.status(409)
@@ -248,18 +244,18 @@ app.delete("/users/:userId/products/:id", (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   const { id, userId } =  req.params;
-  let user = users.findIndex(el => {
-    return el.id == userId;
-  })
-  if(user == -1) {
-    res.status(404).json({message: "User dosen't exist"})
-  }
   try {
     jwt.verify(token, secretKey, (err, decoded) => {
       if (err) {
         res.status(403).json({ message: err.message});
         return;
       } else {
+        let user = users.findIndex(el => {
+          return el.id == userId;
+        })
+        if(user == -1) {
+          res.status(404).json({message: "User dosen't exist"})
+        }
         if (userId == decoded.id) {
           let productIndex = products.findIndex(el => el.id == id && el.user_id == userId)
           if(productIndex != -1) {
@@ -284,27 +280,25 @@ app.patch("/users/:userId/products/:id", (req, res) => {
     const data = req.body;
     const id =  req.params.id;
     const userId = req.params.userId;
-    let user = users.findIndex(el => {
-      return el.id == userId;
-    })
-    if(user == -1) {
-      res.status(404).json({message: "User dosen't exist"})
-    }
     try {
       jwt.verify(token, secretKey, (err, decoded) => {
         if (err) {
           res.status(403).json({ message: err.message});
           return;
         } else {
+          let user = users.findIndex(el => {
+            return el.id == userId;
+          })
+          if(user == -1) {
+            res.status(404).json({message: "User dosen't exist"})
+          }
           if (userId == decoded.id) {
             let ind = products.findIndex(el => {
               return el.id == id;
             })
             if(ind != -1) {
-              console.log(data)
               products[ind] = {...products[ind], ...data}
-              res.json({products: products[ind]})
-              console.log(products)
+              res.json({product: products[ind]})
             } else {
               res.status(404).json({message: "Product doesn't exist"})
             }
