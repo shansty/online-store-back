@@ -41,7 +41,8 @@ let products = [
     description: 'Большая голубая',
     img: 'https://thumbs.dreamstime.com/z/%D0%B3%D0%BE%D0%BB%D1%83%D0%B1%D0%B0%D1%8F-%D1%87%D0%B0%D1%88%D0%BA%D0%B0-8913906.jpg',
     user_id: 1,
-    vendorCode: 44
+    vendorCode: 44,
+    category: "dishes"
   },
   {
     id: 2,
@@ -49,7 +50,8 @@ let products = [
     description: 'Красивая круглая',
     img: 'https://akshome.by/upload/iblock/cde/k0i2q2v9cxrswrs0zjvyhpwpy5tswj5q.jpg',
     user_id: 2,
-    vendorCode: 45
+    vendorCode: 45,
+    category: "dishes"
   },
   {
     id: 3,
@@ -57,7 +59,8 @@ let products = [
     description: 'Удобная серебрянная',
     img: 'https://images.deal.by/317619960_w600_h600_317619960.jpg',
     user_id: 1,
-    vendorCode: 13
+    vendorCode: 13,
+    category: "cutlery"
   }
 ]
 
@@ -310,6 +313,40 @@ app.patch("/users/:userId/products/:id", (req, res) => {
       console.log(err)
       res.status(400).json({message: err.message})
     }});  
+
+
+
+  app.get("/products", (req, res) => {
+    let category =  req.query.category;
+    console.log(`Категория = ${category}`)
+    let categoryProducts = products.filter(el => {
+      return el.category == category;
+    })
+    if(category) {
+      if (categoryProducts.length > 0) {
+        res.status(200).json({ categoryProducts });
+      } else {
+        res.status(200).json({ message: "No products in such category" });
+      }
+    } else {
+      categoryProducts = products;
+      res.status(200).json({products: categoryProducts})
+    }
+    });
+    
+
+  app.get("/products/:id", (req, res) => {
+    const id =  req.params.id;
+    let product = products.find(el => {
+      return el.id == id;
+    })
+    if(product) {
+      res.status(200).json({product})
+    } else {
+      res.status(404).json({message: "Product doesn't exist"})
+    }
+  });
+    
 
 
 app.listen(3001, () => {
