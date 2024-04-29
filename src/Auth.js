@@ -64,6 +64,8 @@ let products = [
   }
 ]
 
+let cart = [];
+
 app.post('/login', (req, res) => {
 
     const email = req.body.email;
@@ -172,7 +174,6 @@ app.patch('/profile/:id', (req, res) => {
 }); 
 
 app.get("/users/:userId/products", (req, res) => {
-  console.log(req.params)
   let userId = req.params.userId;
   let userProducts = products.filter(el => {
     return el.user_id == userId
@@ -318,13 +319,12 @@ app.patch("/users/:userId/products/:id", (req, res) => {
 
   app.get("/products", (req, res) => {
     let category =  req.query.category;
-    console.log(`Категория = ${category}`)
     let categoryProducts = products.filter(el => {
       return el.category == category;
     })
     if(category) {
       if (categoryProducts.length > 0) {
-        res.status(200).json({ categoryProducts });
+        res.status(200).json({ products: categoryProducts });
       } else {
         res.status(200).json({ message: "No products in such category" });
       }
@@ -346,8 +346,54 @@ app.patch("/users/:userId/products/:id", (req, res) => {
       res.status(404).json({message: "Product doesn't exist"})
     }
   });
-    
 
+
+  app.get("/cart", (req, res) => {
+    if(cart) {
+      res.status(200).json({products: cart})
+    } else {
+      res.status(404).json({message: "Product doesn't exist"})
+    }
+  });
+
+  app.delete("/cart/:id", (req, res) => {
+    const id = req.params.id;
+    let ind = cart.findIndex(el => {
+      return el.id == id;
+    })
+      if(ind != -1) {
+        cart.splice(ind, 1)
+        res.json({ cart: cart.filter(el => el.id == id) })
+      } else {
+        res.status(404).json({message: "Product doesn't exist"})
+    }
+   });  
+
+   app.get("/cart/:id", (req, res) => {
+    const id =  req.params.id;
+    let cartProduct = cart.find(el => {
+      return el.id == id;
+    })
+    if(cartProduct) {
+      res.status(200).json({product: cartProduct})
+    } else {
+      res.status(404).json({message: "Product doesn't exist"})
+    }
+  }); 
+
+  app.post("/products/:id/add_to_cart", (req, res) => {
+    const id =  req.params.id;
+    let product = products.find(el => {
+      return el.id == id;
+    })
+    if(product) {
+      cart.push(product);
+      res.status(200).json( {products: cart} )
+    } else {
+      res.status(404).json({message: "Product doesn't exist"})
+    }
+  });
+    
 
 app.listen(3001, () => {
   console.log('Server started on port 3001');
