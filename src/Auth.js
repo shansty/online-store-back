@@ -64,7 +64,7 @@ let products = [
   }
 ]
 
-let cart = [];
+let cart = {};
 
 app.post('/login', (req, res) => {
 
@@ -112,7 +112,6 @@ app.post('/register', (req, res) => {
         userName: userName
     }
     users.push(newUser);
-    console.log(users)
     res.json({message: `${userName}, You are registered!`})
   }
 });
@@ -137,11 +136,10 @@ app.get('/profile/:id', (req, res) => {
           res.status(403).json({message: "Unauthorized"})
         }}
     });
-  } catch (err) {
-    console.log(err)
+  } catch(err) {
+    console.error(err)
     res.status(400).json({message: err.message})
-  }
-}); 
+  }}); 
 
 
 app.patch('/profile/:id', (req, res) => {
@@ -160,18 +158,16 @@ app.patch('/profile/:id', (req, res) => {
           let ind = users.findIndex(el => {
             return el.id == id;
           })
-          console.log(data)
           users[ind] = {...users[ind], ...data}
           res.status(201).json(users[ind])
         } else {
           res.status(403).json({message: "Forbidden"})
         }
       });
-    } catch (err) {
-      console.log(err)
+    } catch(err) {
+      console.error(err)
       res.status(400).json({message: err.message})
-    }
-}); 
+    }}); 
 
 app.get("/users/:userId/products", (req, res) => {
   let userId = req.params.userId;
@@ -231,17 +227,16 @@ app.post("/users/:userId/products", (req, res) => {
                 user_id
             }
             products.push(newProduct);
-            console.log(products)
             res.status(201).json({message: `${title} with vendor code ${vendorCode} added to the product's list`})
           }
         } else {
           res.status(403).json({message: "Unauthorized"})
         }}
     });
-  } catch (err) {
-    console.log(err)
+  } catch(err) {
+    console.error(err)
     res.status(400).json({message: err.message})
-  }});
+  }}); 
 
 
 app.delete("/users/:userId/products/:id", (req, res) => {
@@ -272,10 +267,10 @@ app.delete("/users/:userId/products/:id", (req, res) => {
           res.status(403).json({message: "Unauthorized"})
         }}
     });
-  } catch (err) {
-    console.log(err)
+  } catch(err) {
+    console.error(err)
     res.status(400).json({message: err.message})
-  }});  
+  }}); 
 
 
 app.patch("/users/:userId/products/:id", (req, res) => {
@@ -310,8 +305,8 @@ app.patch("/users/:userId/products/:id", (req, res) => {
             res.status(403).json({message: "Unauthorized"})
           }}
       });
-    } catch (err) {
-      console.log(err)
+    } catch(err) {
+      console.error(err)
       res.status(400).json({message: err.message})
     }});  
 
@@ -348,51 +343,206 @@ app.patch("/users/:userId/products/:id", (req, res) => {
   });
 
 
-  app.get("/cart", (req, res) => {
-    if(cart) {
-      res.status(200).json({products: cart})
-    } else {
-      res.status(404).json({message: "Product doesn't exist"})
-    }
-  });
+  app.get("/users/:userId/cart", (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    const userId = req.params.userId;
+    let user_products=[];
+    try {
+      jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+          res.status(403).json({ message: err.message});
+          return;
+        } else {
+          if (userId == decoded.id) {
+            let user_cart = cart[userId];
+            if(user_cart) {
+              for(let i = 0; i < user_cart.length; i++) {
+                let product_id = user_cart[i].id;
+                let product_amount = user_cart[i].amount;
+                let user_product = products.find(el => {
+                  return el.id == product_id;
+                });
+                if(user_product) {
+                  user_product = {...user_product, ["amount"]: product_amount};
+                  user_products.push(user_product)
+                }  else {
+                  user_products = [];
+                }
+              }
+              res.status(200).json({ user_cart: user_products })
+          }  else {
+            user_products = [];
+            res.status(200).json({ user_cart: user_products })
+          }
+          } else {
+            res.status(403).json({message: "Unauthorized"})
+          }
+          
+      }});
+    } catch(err) {
+      console.error(err)
+      res.status(400).json({message: err.message})
+    }}); 
+    
 
-  app.delete("/cart/:id", (req, res) => {
+
+  app.delete("/users/:userId/cart/:id", (req, res) => {
+    const id =  req.params.id;
+    const userId = req.params.userId;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    try{
+      jwt.verify(token,secretKey, (err, decoded) => {
+        if(err) {
+          res.status(403).json({ message: err.message});
+        } else {
+          if(userId == decoded.id) {
+            let user = users.find(el => {
+              return el.id == userId;
+            }); 
+            if(user) {
+              let product = products.find(el => {
+                return el.id == id;
+              });
+              if(product) {
+                let user_cart = cart[userId];
+                if(user_cart) {
+                  let ind = user_cart.findIndex(item => item.id == id);
+                  console.log(ind);
+                  let user_product = products.find(el => el.id == id);
+                  if(ind != -1) {
+                    let product_amount = user_cart[ind].amount;
+                    if(product_amount > 1) {
+                      product_amount--;
+                      user_product = {...user_product, ["amount"]: product_amount};
+                      user_cart[ind] = user_product;
+                    } else {
+                      user_cart.splice(ind, 1);
+                    }
+                  } else {
+                    res.status(404).json({message: "Product doesn't found"})
+                  }
+                  res.status(200).json({user_product: user_product})
+                } else {
+                  res.status(200).json({message: "User cart is empty"})
+                }
+              } else {
+                res.status(403).json({message: "Product doesn't found"})
+              }
+            } else {
+              res.status(403).json({message: "User doesn't found"})
+            }
+          } else {
+            res.status(403).json({message: "Unauthorized"})
+          }
+        }
+      })
+    } catch(err) {
+      console.error(err)
+      res.status(400).json({message: err.message})
+    }}); 
+
+   app.get("/users/:userId/cart/:id", (req, res) => {
+    const id =  req.params.id;
+    const userId = req.params.userId;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    console.log(token);
+    try{
+      jwt.verify(token,secretKey, (err, decoded) => {
+        if(err) {
+          res.status(403).json({ message: err.message});
+        } else {
+          if(userId == decoded.id) {
+            let user = users.find(el => {
+              return el.id == userId;
+            }); 
+            if(user) {
+              let product = products.find(el => {
+                return el.id == id;
+              });
+              if(product) {
+                let user_cart = cart[userId];
+                console.log({user_cart});
+                if(user_cart) {
+                  let ind = user_cart.findIndex(item => item.id == id);
+                  if(ind != -1) {
+                    let product_amount = user_cart[ind].amount;
+                    let user_product = products.find(el => {
+                    return el.id == id;})
+                    user_product = {...user_product, ["amount"]: product_amount};
+                    res.status(200).json({user_product: user_product})
+                  } else {
+                    res.status(403).json({message: "Product doesn't found"})
+                  }
+                } else {
+                  res.status(200).json({message: "User cart is empty"})
+                }
+              } else {
+                res.status(403).json({message: "Product doesn't found"})
+              }
+            } else {
+              res.status(403).json({message: "User doesn't found"})
+            }
+          } else {
+            res.status(403).json({message: "Unauthorized"})
+          }
+        }
+      })
+    } catch(err) {
+      console.error(err)
+      res.status(400).json({message: err.message})
+    }}); 
+
+
+  app.post("/users/:userId/products_cart/:id", (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     const id = req.params.id;
-    let ind = cart.findIndex(el => {
-      return el.id == id;
-    })
-      if(ind != -1) {
-        cart.splice(ind, 1)
-        res.json({ cart: cart.filter(el => el.id == id) })
-      } else {
-        res.status(404).json({message: "Product doesn't exist"})
-    }
-   });  
-
-   app.get("/cart/:id", (req, res) => {
-    const id =  req.params.id;
-    let cartProduct = cart.find(el => {
-      return el.id == id;
-    })
-    if(cartProduct) {
-      res.status(200).json({product: cartProduct})
-    } else {
-      res.status(404).json({message: "Product doesn't exist"})
-    }
-  }); 
-
-  app.post("/products/:id/add_to_cart", (req, res) => {
-    const id =  req.params.id;
-    let product = products.find(el => {
-      return el.id == id;
-    })
-    if(product) {
-      cart.push(product);
-      res.status(200).json( {products: cart} )
-    } else {
-      res.status(404).json({message: "Product doesn't exist"})
-    }
-  });
+    const userId = req.params.userId;
+    try {
+      jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+          res.status(403).json({ message: err.message});
+          return;
+        } else {
+          if (userId == decoded.id) {
+            let user = users.find(el => {
+              return el.id == userId;
+            })
+            if(user) {
+              let product = products.find(el => {
+                return el.id == id;
+              })
+              if(product) {
+                let user_cart = cart[userId];
+                if(!user_cart) {
+                  user_cart = [{ "id": id, "amount": 1 }];
+                } else {
+                    let index = user_cart.findIndex(item => item.id === id);
+                    if (index !== -1) {
+                        user_cart[index].amount++;
+                    } else {
+                      user_cart.push({ "id": id, "amount": 1 });
+                    }
+                }
+                cart[userId] = user_cart;
+                res.status(200).json({product: cart[userId]})
+              } else {
+                res.status(404).json({message: "Product doesn't found"})
+              }
+            } else {
+              res.status(403).json({message: "Unauthorized"})
+            }
+          } else {
+            res.status(403).json({message: "Unauthorized"})
+          }}
+      });
+    } catch(err) {
+      console.error(err)
+      res.status(400).json({message: err.message})
+    }}); 
     
 
 app.listen(3001, () => {
